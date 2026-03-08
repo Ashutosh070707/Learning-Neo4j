@@ -4,7 +4,7 @@
 - In Cypher, labels, property keys, and variables are case-sensitive. Cypher keywords are not case-sensitive.
 - Neo4j best practices include: Name labels using CamelCase. Name property keys and variables using camelCase. Use UPPERCASE for Cypher keywords.
 - By default, the direction of the edge is from left to right. MERGE (p)-[:ACTED_IN]-(m)
-- If you try to delete a node which have relationships with other nodes and you run this query - MATCH (p:Person {name: 'Jane Doe'}) DELETE p. It will give error. To delete a node, you should perform Detatch Delete because it also deletes teh relationship associated with that particular node - MATCH (p:Person {name: 'Jane Doe'}) DETACH DELETE p
+- If you try to delete a node which have relationships with other nodes and you run this query - MATCH (p:Person {name: 'Jane Doe'}) DELETE p. It will give error. To delete a node, you should perform Detatch Delete because it also deletes relationship associated with that particular node - MATCH (p:Person {name: 'Jane Doe'}) DETACH DELETE p
 - This deletes all nodes from the databse - MATCH (n) DETACH DELETE n
 
 
@@ -20,38 +20,43 @@
 - MATCH (u:User)-[r:RATED]->(m:Movie) WHERE u.name = "Mr. Jason Love" RETURN u.name as name, r.rating, m.title
 - MATCH (p:Person) WHERE p.name = 'Tom Hanks' OR p.name = 'Rita Wilson' RETURN p.name, p.born
 - MATCH (p:Person {name: 'Tom Hanks'})-[:ACTED_IN]->(m) RETURN m.title
-- /// not equals to operator
+- -> Not equals to operator
 - MATCH (p:Person)-[:ACTED_IN]->(m:Movie) WHERE p.name <> 'Tom Hanks' AND m.title = 'Captain Phillips' RETURN p.name
 - MATCH (p)-[:ACTED_IN]->(m) WHERE p:Person AND m:Movie AND m.title='The Matrix' RETURN p.name
 - MATCH (p:Person)-[:ACTED_IN]->(m:Movie) WHERE 2000 <= m.released <= 2003 RETURN p.name, m.title, m.released
 - MATCH (p:Person)-[:ACTED_IN]->(m:Movie) WHERE p.name='Jack Nicholson' AND m.tagline IS NOT NULL RETURN m.title, m.tagline
 
-- //// Three ways of Filtering by partial strings - STARTS WITH, ENDS WITH, and CONTAINS - all of them are case-sensitive
+- -> Three ways of Filtering by partial strings - STARTS WITH, ENDS WITH, and CONTAINS - all of them are case-sensitive
 - MATCH (p:Person)-[:ACTED_IN]->() WHERE p.name STARTS WITH 'Michael' RETURN p.name
-- /// Solution for above problem
+- -> Solution for above problem
 - MATCH (p:Person)-[:ACTED_IN]->() WHERE toLower(p.name) STARTS WITH 'michael' RETURN p.name
-- /// Filtering using lists
+
+- -> Filtering using lists
 - MATCH (p:Person) WHERE p.born IN [1965, 1970, 1975] RETURN p.name, p.born
-- /// Filtering with existing lists
+
+- -> Filtering with existing lists
 - MATCH (p:Person)-[r:ACTED_IN]->(m:Movie) WHERE  'Neo' IN r.roles AND m.title='The Matrix' RETURN p.name, r.roles
-- /// setting multiple queries inline
+
+- -> Setting multiple properties inline
 - MATCH (p:Person)-[r:ACTED_IN]->(m:Movie) WHERE p.name = 'Michael Caine' AND m.title = 'The Dark Knight' SET r.roles = ['Alfred Penny'], m.released = 2008 RETURN p, r, m
-- // order query
+
+- -> Order query
 - MATCH (p:Person) WHERE p.born IS NOT NULL RETURN p.name AS name, p.born AS birthDate ORDER BY p.born DESC
 - MATCH (p:Person)-[:DIRECTED | ACTED_IN]->(m:Movie) WHERE p.name = 'Tom Hanks' OR p.name = 'Keanu Reeves' RETURN  m.year, m.title ORDER BY m.year DESC, m.title AESC
-- // Limiting the result
+
+- -> Limiting the result
 - MATCH (m:Movie) WHERE m.released IS NOT NULL RETURN m.title AS title, m.released AS releaseDate ORDER BY m.released DESC LIMIT 100
-- // Skiping some results
-- MATCH (p:Person) WHERE p.born.year = 1980 RETURN  p.name as name, p.born AS birthDate ORDER BY p.born SKIP 40 LIMIT 10
-- // return distinct values
+
+- -> Skiping some results
+- MATCH (p:Person) WHERE p.born.year = 1980 RETURN p.name as name, p.born AS birthDate ORDER BY p.born SKIP 40 LIMIT 10
+
+- -> Return distinct values
 - MATCH (p:Person)-[:DIRECTED | ACTED_IN]->(m:Movie) WHERE p.name = 'Tom Hanks' RETURN DISTINCT m.title, m.released ORDER BY m.title
+
 - MATCH (m:Movie)<-[:ACTED_IN]-(p:Person) WHERE m.title CONTAINS 'Toy Story' AND p.died IS NULL RETURN 'Movie: ' + m.title AS movie, p.name AS actor, p.born AS dob, date().year - p.born.year AS ageThisYear
-- // Can create list while returning data
+
+- -> Can create list while returning data
 - MATCH (p:Person) RETURN p.name, [p.born, p.died] AS lifeTime LIMIT 10
-
-
-
-
 
 
 
@@ -60,11 +65,11 @@
 
 ## Notes:
 - MERGE will only create the pattern if it doesn’t already exist. Merge works like this - get this node/relationship and if not available, create the node/relationship.
-- 
 
 ## Queries:
 - Merge (m:Movie {title:"GOT"}) set m.year = 2014 return m
-- /// Multi line query for creating nodes and relations
+
+- -> Multi line query for creating nodes and relations
 - MERGE (m:Movie {title: "Arthur the King"})
   MERGE (u:User {name: "Adam"}) 
   MERGE (u)-[r:RATED {rating: 5}]->(m) RETURN u, r, m
@@ -235,8 +240,116 @@ x.datetime.minute
 RETURN duration.inDays(x.date1,x.date2).days/.days/.minutes
 
 ## Graph Traversal
+- -> Used to return paths
+- MATCH p = ((person:Person)-[]->(movie)) WHERE person.name = 'Walt Disney' RETURN p
+- -> Returns the shortest path between two nodes
+- MATCH p = shortestPath((p1:Person)-[*]-(p2:Person)) WHERE p1.name = "Eminem" AND p2.name = "Charlton Heston" RETURN  p
+- -> You can specify specific relationship type also
+- MATCH p = shortestPath((p1:Person)-[:ACTED_IN*]-(p2:Person)) WHERE p1.name = "Eminem" AND p2.name = "Charlton Heston" RETURN p
+- -> Excat certain number of hops away
+- MATCH (p:Person {name: 'Eminem'})-[:ACTED_IN*2]-(others:Person) RETURN  others.name
+- -> Upto certain number of hops away
+- MATCH (p:Person {name: 'Eminem'})-[:ACTED_IN*1..4]-(others:Person) RETURN  others.name
 
+## Piplelining Queries
+- WITH  'Tom Hanks' AS theActor
+MATCH (p:Person)-[:ACTED_IN]->(m:Movie)
+WHERE p.name = theActor
+WITH m ORDER BY m.year LIMIT 5
+// possibly do more with the five m nodes in a particular order
+RETURN m.title AS movies, m.year AS yearReleased
 
+- MATCH (n:Movie)
+WHERE n.imdbRating IS NOT NULL
+AND n.poster IS NOT NULL
+WITH n {
+  .title,
+  .year,
+  .languages,
+  .plot,
+  .poster,
+  .imdbRating,
+  directors: [ (n)<-[:DIRECTED]-(d) | d { tmdbId:d.imdbId, .name } ]
+}
+ORDER BY n.imdbRating DESC LIMIT 4
+RETURN collect(n)
+
+- MATCH (:Movie {title: 'Toy Story'})-[:IN_GENRE]->(g:Genre)<-[:IN_GENRE]-(m)
+WHERE m.imdbRating IS NOT NULL
+WITH g.name AS genre,
+count(m) AS moviesInCommon,
+sum(m.imdbRating) AS total
+RETURN genre, moviesInCommon,
+total/moviesInCommon AS score
+ORDER By score DESC
+
+- MATCH (m:Movie)<-[:ACTED_IN]-(a:Actor)
+WHERE m.title CONTAINS 'New York'
+WITH m, collect (a.name) AS actors,
+count(*) AS numActors
+ORDER BY numActors DESC
+RETURN collect(m { .title, actors, numActors }) AS movies
+
+- MATCH (p:Actor)
+WHERE p.born.year = 1980
+WITH p  LIMIT 3
+MATCH (p)-[:ACTED_IN]->(m:Movie)-[:IN_GENRE]->(g:Genre)
+WITH p, collect(DISTINCT g.name) AS genres
+RETURN p.name AS actor, genres
+
+## Unwinding Lists
+- MATCH (m:Movie)
+UNWIND m.languages AS lang
+WITH m, trim(lang) AS language
+// this automatically, makes the language distinct because it's a grouping key
+WITH language, collect(m.title) AS movies
+RETURN language, movies[0..10]
+
+## Subquery
+- CALL {
+   MATCH (m:Movie) WHERE m.year = 2000
+   RETURN m ORDER BY m.imdbRating DESC LIMIT 10
+}
+MATCH  (:User)-[r:RATED]->(m)
+RETURN m.title, avg(r.rating)
+
+- MATCH (m:Movie)
+CALL {
+    WITH m
+    MATCH (m)<-[r:RATED]-(u:User)
+     WHERE r.rating = 5
+    RETURN count(u) AS numReviews
+}
+RETURN m.title, numReviews
+ORDER BY numReviews DESC
+
+- UNION ALL returns all results which is more efficient on memory but can lead to duplicates. UNION returns distinct results
+
+- MATCH (m:Movie) WHERE m.year = 2000
+RETURN {type:"movies", theMovies: collect(m.title)} AS data
+UNION ALL
+MATCH (a:Actor) WHERE a.born.year > 2000
+RETURN { type:"actors", theActors: collect(DISTINCT a.name)} AS data
+
+- MATCH (p:Person)
+WITH p LIMIT 100
+CALL {
+  WITH p
+  OPTIONAL MATCH (p)-[:ACTED_IN]->(m:Movie)
+  RETURN m.title + ": " + "Actor" AS work
+UNION
+  WITH p
+  OPTIONAL MATCH (p)-[:DIRECTED]->(m:Movie)
+  RETURN m.title+ ": " +  "Director" AS work
+}
+RETURN p.name, collect(work)
+
+## Using parameters inside queries
+- MATCH (p:Person)-[:ACTED_IN]->(m:Movie)
+WHERE p.name = $actorName
+RETURN m.released AS releaseDate,
+m.title AS title
+ORDER BY m.released DESC
 
 
 
